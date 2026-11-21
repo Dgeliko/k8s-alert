@@ -7,6 +7,7 @@ import (
 	"k8s-alert/internal/monitor"
 	"k8s-alert/internal/notify"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -50,26 +51,51 @@ func (a *App) Run(ctx context.Context) error {
 		defer cancel()
 		server.Shutdown(c)
 	}()
-	factory := informers.NewSharedInformerFactory(a.Client, 0)
-	stores := map[string]cache.SharedIndexInformer{"Pod": factory.Core().V1().Pods().Informer(), "Deployment": factory.Apps().V1().Deployments().Informer(), "ReplicaSet": factory.Apps().V1().ReplicaSets().Informer(), "StatefulSet": factory.Apps().V1().StatefulSets().Informer(), "DaemonSet": factory.Apps().V1().DaemonSets().Informer(), "Job": factory.Batch().V1().Jobs().Informer(), "CronJob": factory.Batch().V1().CronJobs().Informer(), "Event": factory.Core().V1().Events().Informer()}
+	namespaces := cfg.ObservationNamespaces()
+	type observedStore struct {
+		kind      string
+		namespace string
+		informer  cache.SharedIndexInformer
+	}
+	var stores []observedStore
+	var factories []informers.SharedInformerFactory
+	for _, namespace := range namespaces {
+		factory := informers.NewSharedInformerFactoryWithOptions(a.Client, 0, informers.WithNamespace(namespace), informers.WithTransform(stripCacheMetadata))
+		factories = append(factories, factory)
+		for kind, inf := range map[string]cache.SharedIndexInformer{
+			"Pod":         factory.Core().V1().Pods().Informer(),
+			"Deployment":  factory.Apps().V1().Deployments().Informer(),
+			"ReplicaSet":  factory.Apps().V1().ReplicaSets().Informer(),
+			"StatefulSet": factory.Apps().V1().StatefulSets().Informer(),
+			"DaemonSet":   factory.Apps().V1().DaemonSets().Informer(),
+			"Job":         factory.Batch().V1().Jobs().Informer(),
+			"CronJob":     factory.Batch().V1().CronJobs().Informer(),
+			"Event":       factory.Core().V1().Events().Informer(),
+		} {
+			stores = append(stores, observedStore{kind, namespace, inf})
+		}
+	}
 	var verificationMu sync.Mutex
 	var verified *monitor.Inventory
 	var verifiedPods []*corev1.Pod
 	var verifiedAt time.Time
-	for kind, inf := range stores {
-		k := kind
+	for _, store := range stores {
+		inf := store.informer
 		inf.SetWatchErrorHandler(func(_ *cache.Reflector, err error) {
 			verificationMu.Lock()
 			verified = nil
+			verifiedPods = nil
 			verificationMu.Unlock()
 			metrics.Inc("watch_errors")
-			slog.Warn("Kubernetes watch failed", "kind", k)
+			slog.Warn("Kubernetes watch failed", "kind", store.kind, "namespace", store.namespace)
 		})
 	}
-	factory.Start(ctx.Done())
-	for _, ok := range factory.WaitForCacheSync(ctx.Done()) {
-		if !ok {
-			return fmt.Errorf("required informer cache failed to sync")
+	for _, factory := range factories {
+		factory.Start(ctx.Done())
+	}
+	for _, store := range stores {
+		if !cache.WaitForCacheSync(ctx.Done(), store.informer.HasSynced) {
+			return fmt.Errorf("required informer cache failed to sync: %s in namespace %q", store.kind, store.namespace)
 		}
 	}
 	metrics.Ready.Store(true)
@@ -119,8 +145,8 @@ func (a *App) Run(ctx context.Context) error {
 	}()
 	// Events are coalesced; informer callbacks never perform API I/O.
 	wake := make(chan struct{}, 1)
-	for _, inf := range stores {
-		inf.AddEventHandler(cache.ResourceEventHandlerFuncs{AddFunc: func(any) {
+	for _, store := range stores {
+		store.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{AddFunc: func(any) {
 			select {
 			case wake <- struct{}{}:
 			default:
@@ -153,14 +179,21 @@ func (a *App) Run(ctx context.Context) error {
 				return
 			case <-probe.C:
 				if engine.Count() == 0 {
+					verificationMu.Lock()
+					verified = nil
+					verifiedPods = nil
+					verificationMu.Unlock()
 					continue
 				}
-				c, cancel := context.WithTimeout(workerCtx, 10*time.Second)
-				v, pods, err := freshInventory(c, a.Client)
+				// Each additional namespace adds seven requests on a rate-limited client.
+				timeout := max(10*time.Second, time.Duration(len(namespaces))*time.Second+5*time.Second)
+				c, cancel := context.WithTimeout(workerCtx, timeout)
+				v, pods, err := freshInventory(c, a.Client, namespaces)
 				cancel()
 				verificationMu.Lock()
 				if err != nil {
 					verified = nil
+					verifiedPods = nil
 					metrics.Inc("verification_errors")
 				} else {
 					verified = v
@@ -176,19 +209,19 @@ func (a *App) Run(ctx context.Context) error {
 		v := monitor.NewInventory()
 		var pods []*corev1.Pod
 		var events []*corev1.Event
-		for kind, inf := range stores {
-			for _, obj := range inf.GetStore().List() {
+		for _, store := range stores {
+			for _, obj := range store.informer.GetStore().List() {
 				r, ok := obj.(runtime.Object)
 				if !ok {
 					continue
 				}
-				if kind == "Event" {
+				if store.kind == "Event" {
 					if e, ok := obj.(*corev1.Event); ok {
 						events = append(events, e)
 					}
 					continue
 				}
-				v.Add(kind, r)
+				v.Add(store.kind, r)
 				if p, ok := obj.(*corev1.Pod); ok {
 					pods = append(pods, p)
 				}
@@ -252,4 +285,16 @@ func (a *App) Run(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+// Informers own incoming objects before the transform runs. Keep only the
+// metadata needed for detection and ownership resolution in the cache.
+func stripCacheMetadata(obj any) (any, error) {
+	m, err := meta.Accessor(obj)
+	if err != nil {
+		return nil, err
+	}
+	m.SetManagedFields(nil)
+	m.SetAnnotations(nil)
+	return obj, nil
 }

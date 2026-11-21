@@ -136,6 +136,8 @@ func (m *Manager) send(ctx context.Context, key string) {
 	if ctx.Err() != nil {
 		return
 	}
+	p := j.Request.Payload
+	fields := []any{"destination", d.Name, "notification_id", p.NotificationID, "incident_id", p.IncidentID, "status", p.Status, "namespace", p.Namespace, "resource_kind", p.Resource.Kind, "resource", p.Resource.Name, "workload_kind", p.Workload.Kind, "workload", p.Workload.Name, "container", p.Container, "reason", p.Reason, "failure_class", p.Class, "attempt", j.Attempts + 1}
 	if err == nil {
 		delete(m.Jobs, key)
 		if m.Ack != nil {
@@ -144,6 +146,7 @@ func (m *Manager) send(ctx context.Context, key string) {
 		if m.OnResult != nil {
 			m.OnResult("success")
 		}
+		slog.Info("notification sent", fields...)
 		return
 	}
 	var de *DeliveryError
@@ -156,7 +159,7 @@ func (m *Manager) send(ctx context.Context, key string) {
 		if m.OnResult != nil {
 			m.OnResult("terminal")
 		}
-		slog.Error("notification permanently failed", "destination", d.Name, "error", err)
+		slog.Error("notification permanently failed", append(fields, "error", err)...)
 		return
 	}
 	j.Attempts++
@@ -169,7 +172,7 @@ func (m *Manager) send(ctx context.Context, key string) {
 	if m.OnResult != nil {
 		m.OnResult("retry")
 	}
-	slog.Warn("notification retry scheduled", "destination", d.Name, "delay", delay, "error", err)
+	slog.Warn("notification retry scheduled", append(fields, "delay", delay, "error", err)...)
 }
 func (m *Manager) Export() map[string]*Job {
 	m.mu.Lock()

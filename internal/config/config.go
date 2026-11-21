@@ -274,6 +274,28 @@ func selection(s Selection, vs []string) bool {
 	}
 	return inc
 }
+
+// ObservationNamespaces returns the API scopes needed by the namespace filter.
+// An empty string denotes a cluster-wide watch for dynamic namespace patterns.
+func (c *Config) ObservationNamespaces() []string {
+	s := c.Filters.Namespaces
+	if len(s.Include) == 0 {
+		return []string{""}
+	}
+	names := make([]string, 0, len(s.Include))
+	seen := make(map[string]bool, len(s.Include))
+	for _, name := range s.Include {
+		if name == "" || strings.ContainsAny(name, `*?[\`) {
+			return []string{""}
+		}
+		if !seen[name] && !matches(s.Exclude, name) {
+			names = append(names, name)
+			seen[name] = true
+		}
+	}
+	return names
+}
+
 func (c *Config) Allows(t Target) bool {
 	if t.OwnerUnknown && (len(c.Filters.Kinds.Include) > 0 || len(c.Filters.Kinds.Exclude) > 0) {
 		return false
