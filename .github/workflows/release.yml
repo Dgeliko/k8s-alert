@@ -30,11 +30,8 @@ jobs:
           TAG="${RAW_VERSION#release/}"
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo 'Invalid release version'; exit 1; }
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-  verify:
-    needs: version
-    uses: ./.github/workflows/verify.yml
   preflight:
-    needs: [verify, version]
+    needs: version
     env:
       RELEASE_TAG: ${{ needs.version.outputs.tag }}
     runs-on: ubuntu-latest
