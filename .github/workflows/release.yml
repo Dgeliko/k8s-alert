@@ -27,7 +27,8 @@ jobs:
           RAW_VERSION: ${{ inputs.version || github.event.ref || github.ref_name }}
         shell: bash
         run: |
-          TAG="${RAW_VERSION#release/}"
+          TAG="${RAW_VERSION#refs/tags/}"
+          TAG="${TAG#release/}"
           [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || { echo 'Invalid release version'; exit 1; }
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
   preflight:
