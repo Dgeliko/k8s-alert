@@ -1,0 +1,7 @@
+apiVersion: v2
+name: k8s-alert
+description: Kubernetes failure notifications with logs, workload deduplication and Pachca/Telegram delivery
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.29.0-0"

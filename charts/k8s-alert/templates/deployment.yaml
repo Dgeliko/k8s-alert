@@ -1,0 +1,114 @@
+{{- if ne (int .Values.replicaCount) 1 }}{{ fail "k8s-alert requires replicaCount=1 (single state owner)" }}{{ end }}
+{{- $secrets := list -}}
+{{- $names := dict -}}
+{{- $enabled := 0 -}}
+{{- range .Values.destinations -}}
+{{- if hasKey $names .name }}{{ fail "destination names must be unique" }}{{ end -}}
+{{- $_ := set $names .name true -}}
+{{- if .enabled -}}
+{{- $enabled = add1 $enabled -}}
+{{- $secret := required "enabled destination requires existingSecret" .existingSecret -}}
+{{- $secrets = append $secrets $secret -}}
+{{- if and (eq .type "telegram") (not (get . "chat-id")) }}{{ fail "enabled telegram requires chat-id" }}{{ end -}}
+{{- end -}}
+{{- end -}}
+{{- if eq (int $enabled) 0 }}{{ fail "enable at least one destination" }}{{ end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "k8s-alert.fullname" . }}
+  labels:
+    {{- include "k8s-alert.labels" . | nindent 4 }}
+  {{- if .Values.reloader.enabled }}
+  annotations:
+    configmap.reloader.stakater.com/reload: {{ printf "%s-config" (include "k8s-alert.fullname" .) | quote }}
+    secret.reloader.stakater.com/reload: {{ join "," ($secrets | uniq) | quote }}
+  {{- end }}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "k8s-alert.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "k8s-alert.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        {{- if not .Values.reloader.enabled }}
+        checksum/config: {{ include "k8s-alert.config" . | sha256sum }}
+        {{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "k8s-alert.sa" . }}
+      terminationGracePeriodSeconds: 45
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile: {type: RuntimeDefault}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: k8s-alert
+          image: {{ printf "%s:%s" .Values.image.repository (default (printf "v%s" .Chart.AppVersion) .Values.image.tag) | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["--config=/etc/k8s-alert/config.yaml"]
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef: {fieldPath: metadata.namespace}
+          ports:
+            - name: http
+              containerPort: 8080
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            failureThreshold: 60
+            periodSeconds: 2
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources: {{ toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/k8s-alert
+              readOnly: true
+            {{- range .Values.destinations }}
+            {{- if .enabled }}
+            - name: destination-{{ .name }}
+              mountPath: /var/run/k8s-alert/destinations/{{ .name }}
+              readOnly: true
+            {{- end }}
+            {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "k8s-alert.fullname" . }}-config
+        {{- range .Values.destinations }}
+        {{- if .enabled }}
+        - name: destination-{{ .name }}
+          secret:
+            secretName: {{ .existingSecret }}
+            defaultMode: 0440
+        {{- end }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{ toYaml . | nindent 8 }}
+      {{- end }}

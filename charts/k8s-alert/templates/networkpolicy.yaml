@@ -1,0 +1,20 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "k8s-alert.fullname" . }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "k8s-alert.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports: [{protocol: TCP, port: 8080}]
+  # API server/webhook addresses are cluster-specific; avoid pretending a
+  # DNS-only policy permits them. Customize this policy before restricting egress.
+  egress:
+    - {}
+{{- end }}

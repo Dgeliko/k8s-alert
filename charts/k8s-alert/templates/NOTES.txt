@@ -1,0 +1,6 @@
+k8s-alert installed in namespace {{ .Release.Namespace }}.
+Check: kubectl -n {{ .Release.Namespace }} rollout status deployment/{{ include "k8s-alert.fullname" . }}
+Logs:  kubectl -n {{ .Release.Namespace }} logs deployment/{{ include "k8s-alert.fullname" . }}
+{{- if .Values.reloader.enabled }}
+Config/Secret changes require Stakater Reloader running in this cluster.
+{{- end }}

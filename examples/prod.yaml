@@ -1,0 +1,8 @@
+config:
+  cluster: production
+  env-type: prod
+  filters:
+    kinds:
+      exclude: [Job, CronJob]
+  notifications:
+    repeat-interval: 30m

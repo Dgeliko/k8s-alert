@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "incident_id": "81c8b798da70",
+  "notification_id": "294b295d9701",
+  "status": "firing",
+  "cluster": "production",
+  "env_type": "prod",
+  "namespace": "crm",
+  "resource": {"kind": "Pod", "name": "api-7cd9-example", "uid": "pod-uid", "namespace": "crm"},
+  "workload": {"kind": "Deployment", "name": "api", "uid": "deployment-uid", "namespace": "crm"},
+  "container": "app",
+  "reason": "OOMKilled",
+  "failure_class": "OOMKilled",
+  "exit_code": 137,
+  "restart_count": 1,
+  "first_seen": "2026-11-22T00:00:00Z",
+  "last_seen": "2026-11-22T00:00:00Z",
+  "occurrences": 1,
+  "message": "firing crm/api: OOMKilled",
+  "logs": [{"pod": "api-7cd9-example", "container": "app", "source": "previous", "text": "application log excerpt", "truncated": false}],
+  "events": []
+}

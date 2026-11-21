@@ -1,0 +1,14 @@
+# Lists replace rather than merge in Helm. Keep Pachca when enabling Telegram.
+destinations:
+  - name: pachca
+    type: pachca
+    enabled: true
+    existingSecret: k8s-alert-pachca
+    url-key: url
+  - name: telegram
+    type: telegram
+    enabled: true
+    existingSecret: k8s-alert-telegram
+    token-key: bot-token
+    chat-id: "-1001234567890"
+    # message-thread-id: 42

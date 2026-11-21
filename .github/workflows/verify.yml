@@ -1,0 +1,23 @@
+name: Verify release
+on:
+  workflow_call:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - run: go mod download
+      - run: go test -race ./...
+      - run: go vet ./...
+      - run: test -z "$(gofmt -l cmd internal)"
+      - uses: azure/setup-helm@v4.3.0
+        with:
+          version: v3.17.3
+      - run: make chart
+      - run: python3 scripts/check-chart.py

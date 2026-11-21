@@ -1,0 +1,6 @@
+config:
+  cluster: dev
+  env-type: dev
+  filters:
+    kinds:
+      exclude: [Job, CronJob]

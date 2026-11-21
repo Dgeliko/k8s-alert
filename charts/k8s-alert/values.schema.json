@@ -1,0 +1,586 @@
+{
+  "type": "object",
+  "properties": {
+    "replicaCount": {
+      "const": 1
+    },
+    "nameOverride": {
+      "type": "string"
+    },
+    "fullnameOverride": {
+      "type": "string"
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "tag": {
+          "type": "string"
+        },
+        "pullPolicy": {
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "imagePullSecrets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "serviceAccount": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "reloader": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "persistence": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "resources": {
+      "type": "object"
+    },
+    "nodeSelector": {
+      "type": "object"
+    },
+    "tolerations": {
+      "type": "array"
+    },
+    "affinity": {
+      "type": "object"
+    },
+    "podAnnotations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "cluster": {
+          "type": "string",
+          "minLength": 1
+        },
+        "env-type": {
+          "enum": [
+            "dev",
+            "prod"
+          ]
+        },
+        "filters": {
+          "type": "object",
+          "properties": {
+            "namespaces": {
+              "type": "object",
+              "properties": {
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            },
+            "pod-names": {
+              "type": "object",
+              "properties": {
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            },
+            "kinds": {
+              "type": "object",
+              "properties": {
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "exclude": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            },
+            "label-selector": {
+              "type": "string"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "restarts": {
+          "type": "object",
+          "properties": {
+            "threshold": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "window": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "group-by": {
+              "enum": [
+                "workload",
+                "pod"
+              ]
+            },
+            "repeat-interval": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+            },
+            "recovery": {
+              "type": "boolean"
+            },
+            "recovery-stable-for": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "logs": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "tail-lines": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            },
+            "max-bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            },
+            "max-pods": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            "timeout": {
+              "type": "string",
+              "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+            },
+            "redact-patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "detectors": {
+          "type": "object",
+          "properties": {
+            "container-crash": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "oom-killed": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "probe-failure": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "crash-loop": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "image-pull-failure": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "container-config-failure": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "pod-pending": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "pod-not-ready": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "workload-unavailable": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "rollout-failed": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            },
+            "replicaset-failed-create": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "for": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                }
+              },
+              "required": [
+                "enabled"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "overrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "match": {
+                "type": "object",
+                "properties": {
+                  "namespaces": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "pod-names": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "workload-names": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "kinds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "label-selector": {
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "restarts": {
+                "type": "object",
+                "properties": {
+                  "threshold": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "window": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "notifications": {
+                "type": "object",
+                "properties": {
+                  "repeat-interval": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                  },
+                  "recovery": {
+                    "type": "boolean"
+                  },
+                  "recovery-stable-for": {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h)([0-9]+(\\.[0-9]+)?(ns|us|\u00b5s|ms|s|m|h))*$"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "match"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "version",
+        "cluster",
+        "env-type"
+      ],
+      "additionalProperties": false
+    },
+    "destinations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$",
+            "maxLength": 40
+          },
+          "type": {
+            "enum": [
+              "pachca",
+              "telegram",
+              "generic"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "existingSecret": {
+            "type": "string"
+          },
+          "url-key": {
+            "type": "string"
+          },
+          "token-key": {
+            "type": "string"
+          },
+          "chat-id": {
+            "type": "string"
+          },
+          "message-thread-id": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "name",
+          "type",
+          "enabled"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "config",
+    "destinations"
+  ],
+  "additionalProperties": false,
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

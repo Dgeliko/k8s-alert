@@ -1,0 +1,6 @@
+.git
+.idea
+.cache
+dist
+bin
+*.log
