@@ -22,7 +22,7 @@ kubectl -n k8s-alert create secret generic k8s-alert-pachca \
   --from-literal=url='https://api.pachca.com/webhooks/REPLACE_ME'
 
 helm upgrade --install k8s-alert oci://ghcr.io/dgeliko/charts/k8s-alert \
-  --version 0.1.0 -n k8s-alert --create-namespace \
+  --version 0.1.1 -n k8s-alert --create-namespace \
   --set config.cluster=dev --set config.env-type=dev --wait --timeout 3m
 ```
 
