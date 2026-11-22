@@ -3,7 +3,7 @@
 Небольшой Go-сервис для уведомлений о сбоях Kubernetes. Пачка через incoming
 webhook, опционально Telegram Bot API и произвольный JSON webhook. Установка Helm.
 
-**Состояние:** версия 0.1.5 подготовлена к dev-проверке. Команды OCI ниже
+**Состояние:** версия 0.1.6 подготовлена к dev-проверке. Команды OCI ниже
 заработают после публикации пакетов этой версии.
 Go и Docker на машине установки не нужны.
 
@@ -22,7 +22,7 @@ kubectl -n k8s-alert create secret generic k8s-alert-pachca \
   --from-literal=url='https://api.pachca.com/webhooks/REPLACE_ME'
 
 helm upgrade --install k8s-alert oci://ghcr.io/dgeliko/charts/k8s-alert \
-  --version 0.1.5 -n k8s-alert --create-namespace \
+  --version 0.1.6 -n k8s-alert --create-namespace \
   --set config.cluster=dev --set config.env-type=dev --wait --timeout 3m
 ```
 
@@ -39,7 +39,7 @@ helm upgrade --install k8s-alert ./charts/k8s-alert \
 kubectl -n k8s-alert logs deployment/k8s-alert
 ```
 
-Имя контейнерного пакета: `ghcr.io/dgeliko/k8s-alert:v0.1.5`. Оба GHCR-пакета
+Имя контейнерного пакета: `ghcr.io/dgeliko/k8s-alert:v0.1.6`. Оба GHCR-пакета
 (образ и chart) должны иметь Public visibility,
 если кластер будет скачивать их без авторизации. Для Private-образа задайте
 `imagePullSecrets`; для Private-chart выполните `helm registry login ghcr.io`.
@@ -152,10 +152,12 @@ helm upgrade --install k8s-alert ./charts/k8s-alert -n k8s-alert \
 
 Встроенного hot reload нет. Конфигурация и credentials читаются на старте;
 Stakater Reloader перезапускает Deployment при изменении config/Secret.
-При `reloader.enabled: true` чарт добавляет `reloader.stakater.com/auto: "true"`
+При `reloader.enabled: true` и `reloader.auto: true` чарт добавляет `reloader.stakater.com/auto: "true"`
 в Deployment. Reloader следит за ConfigMap и Secret, на которые ссылается
 Pod. Служебный ConfigMap состояния приложение читает через Kubernetes API,
 поэтому запись состояния не вызывает перезапуск.
+При `reloader.auto: false` Reloader следит только за ConfigMap конфигурации
+и Secret включённых получателей.
 С `reloader.enabled: false` Helm checksum перезапускает Pod при config upgrade;
 изменение внешнего Secret в этом режиме требует `kubectl rollout restart`.
 
@@ -192,13 +194,13 @@ GOCACHE="$PWD/.cache/go-build" GOMODCACHE="$PWD/.cache/go-mod" go test -race ./.
 На Mac ARM64 локальная сборка даёт macOS-бинарник. Для Linux:
 
 ```sh
-make release-binaries VERSION=v0.1.5
+make release-binaries VERSION=v0.1.6
 # dist/k8s-alert-linux-amd64 и dist/k8s-alert-linux-arm64
 
 docker buildx build --platform linux/amd64 --load \
-  --build-arg VERSION=v0.1.5 -t k8s-alert:v0.1.5 .
+  --build-arg VERSION=v0.1.6 -t k8s-alert:v0.1.6 .
 # Для публикации обеих архитектур:
-make image VERSION=v0.1.5
+make image VERSION=v0.1.6
 ```
 
 В Dockerfile GOOS/GOARCH берутся из TARGETOS/TARGETARCH; host Mac не задаёт
@@ -207,18 +209,18 @@ make image VERSION=v0.1.5
 ## Публикация
 
 Откройте GitHub → **Actions → Release → Run workflow**, выберите `main` и
-укажите новую версию, например `v0.1.5`. Тег создаст сам workflow после
+укажите новую версию, например `v0.1.6`. Тег создаст сам workflow после
 успешной сборки. Можно также запустить релиз обычным push тега `v*.*.*`.
 Существующий релиз не перезаписывается. Для запуска через подключённый GitHub
-без браузера/консоли поддерживается создание ветки `release/v0.1.5` от
+без браузера/консоли поддерживается создание ветки `release/v0.1.6` от
 проверенного коммита: событие create запускает тот же Release workflow.
 Обычные feature-ветки релиз не запускают.
 
 Перед запуском релиза проверьте успешный CI для выбранного коммита. Release
 проверяет версию, собирает артефакты и публикует:
 
-- контейнер `ghcr.io/dgeliko/k8s-alert:v0.1.5`, linux/amd64 + linux/arm64;
-- OCI Helm chart `oci://ghcr.io/dgeliko/charts/k8s-alert`, version 0.1.5;
+- контейнер `ghcr.io/dgeliko/k8s-alert:v0.1.6`, linux/amd64 + linux/arm64;
+- OCI Helm chart `oci://ghcr.io/dgeliko/charts/k8s-alert`, version 0.1.6;
 - GitHub Release с обоими скомпилированными Linux-бинарниками,
   Helm `.tgz` и SHA256SUMS; исходники доступны в Git и release source archives.
 

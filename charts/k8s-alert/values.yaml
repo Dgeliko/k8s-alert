@@ -11,6 +11,7 @@ serviceAccount:
   name: ""
 reloader:
   enabled: true # Stakater Reloader must already be installed in the cluster.
+  auto: true # Watch referenced ConfigMaps and Secrets. Set false to watch only the chart's config and destination Secrets.
 persistence:
   enabled: true
 resources:

@@ -60,6 +60,9 @@
       "properties": {
         "enabled": {
           "type": "boolean"
+        },
+        "auto": {
+          "type": "boolean"
         }
       },
       "required": [],

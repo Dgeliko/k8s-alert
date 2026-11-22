@@ -1,4 +1,5 @@
 {{- if ne (int .Values.replicaCount) 1 }}{{ fail "k8s-alert requires replicaCount=1 (single state owner)" }}{{ end }}
+{{- $secrets := list -}}
 {{- $names := dict -}}
 {{- $enabled := 0 -}}
 {{- range .Values.destinations -}}
@@ -6,7 +7,8 @@
 {{- $_ := set $names .name true -}}
 {{- if .enabled -}}
 {{- $enabled = add1 $enabled -}}
-{{- $_ := required "enabled destination requires existingSecret" .existingSecret -}}
+{{- $secret := required "enabled destination requires existingSecret" .existingSecret -}}
+{{- $secrets = append $secrets $secret -}}
 {{- if and (eq .type "telegram") (not (get . "chat-id")) }}{{ fail "enabled telegram requires chat-id" }}{{ end -}}
 {{- end -}}
 {{- end -}}
@@ -19,7 +21,12 @@ metadata:
     {{- include "k8s-alert.labels" . | nindent 4 }}
   {{- if .Values.reloader.enabled }}
   annotations:
+    {{- if .Values.reloader.auto }}
     reloader.stakater.com/auto: "true"
+    {{- else }}
+    configmap.reloader.stakater.com/reload: {{ printf "%s-config" (include "k8s-alert.fullname" .) | quote }}
+    secret.reloader.stakater.com/reload: {{ join "," ($secrets | uniq) | quote }}
+    {{- end }}
   {{- end }}
 spec:
   replicas: 1

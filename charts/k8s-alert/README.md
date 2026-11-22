@@ -14,9 +14,10 @@ See [project README](../../README.md) for installation, profiles and release pro
 | `config.filters` | all | Namespace/pod name/kind include/exclude and labels |
 | `destinations` | Pachca enabled | Optional Telegram and generic webhook |
 | `reloader.enabled` | `true` | Integrate separately installed Stakater Reloader |
+| `reloader.auto` | `true` | Watch Pod references. Set false to watch only the chart's config and destination Secrets |
 | `persistence.enabled` | `true` | Incident/outbox checkpoint in ConfigMap |
 | `replicaCount` | `1` | Only supported value |
 
 Disabled destinations do not require credentials or mounts. Secret values never
-belong in values.yaml. Reloader watches only named configuration and active
-credentials; state updates never trigger a reload. No chart dependencies.
+belong in values.yaml. The checkpoint ConfigMap is accessed through the API,
+so state updates never trigger a reload. No chart dependencies.
