@@ -122,7 +122,7 @@ var DetectorDefaults = map[string]time.Duration{"ContainerCrash": 0, "OOMKilled"
 var DetectorNames = map[string]string{"ContainerCrash": "container-crash", "OOMKilled": "oom-killed", "ProbeFailure": "probe-failure", "CrashLoop": "crash-loop", "ImagePullFailure": "image-pull-failure", "ContainerConfigFailure": "container-config-failure", "PodPending": "pod-pending", "PodNotReady": "pod-not-ready", "WorkloadUnavailable": "workload-unavailable", "RolloutFailed": "rollout-failed", "ReplicaSetFailedCreate": "replicaset-failed-create"}
 
 func Load(b []byte) (*Config, error) {
-	c := &Config{Version: 1, Env: "dev", Listen: ":8080", Restarts: Restarts{Window: Duration(5 * time.Minute)}, Notifications: Notifications{GroupBy: "workload", Repeat: Duration(30 * time.Minute), Recovery: true, Stable: Duration(2 * time.Minute)}, Logs: LogConfig{Enabled: true, TailLines: 50, MaxBytes: 16384, MaxPods: 3, Timeout: Duration(5 * time.Second)}, Persistence: Persistence{Name: "k8s-alert-state"}}
+	c := &Config{Version: 1, Env: "dev", Listen: ":8080", Restarts: Restarts{Window: Duration(5 * time.Minute)}, Notifications: Notifications{GroupBy: "workload", Repeat: Duration(30 * time.Minute), Recovery: true, Stable: Duration(2 * time.Minute)}, Logs: LogConfig{Enabled: true, TailLines: 15, MaxBytes: 16384, MaxPods: 3, Timeout: Duration(5 * time.Second)}, Persistence: Persistence{Name: "k8s-alert-state"}}
 	d := yaml.NewDecoder(bytes.NewReader(b))
 	d.KnownFields(true)
 	if e := d.Decode(c); e != nil {

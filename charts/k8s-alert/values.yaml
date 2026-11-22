@@ -41,7 +41,7 @@ config:
     recovery-stable-for: 2m
   logs:
     enabled: true
-    tail-lines: 50
+    tail-lines: 15
     max-bytes: 16384
     max-pods: 3
     timeout: 5s

@@ -173,10 +173,21 @@ func webhookBody(p monitor.Payload, provider string) ([]byte, error) {
 	base := Clip(p.Message, 12000)
 	for i := 0; i < 40; i++ {
 		p.Message = base
+		var logsJSON string
 		if provider == "pachca" {
 			p.Message = Clip(Text(p, 24000), 24000)
+			if len(p.Logs) > 0 {
+				rendered, err := renderJSONLogs(p.Logs)
+				if err != nil {
+					return nil, err
+				}
+				logsJSON = rendered
+			}
 		}
-		b, e := json.Marshal(p)
+		b, e := json.Marshal(struct {
+			monitor.Payload
+			LogsJSON string `json:"logs_json,omitempty"`
+		}{Payload: p, LogsJSON: logsJSON})
 		if e != nil {
 			return nil, e
 		}
@@ -202,6 +213,32 @@ func webhookBody(p monitor.Payload, provider string) ([]byte, error) {
 	}
 	return nil, &DeliveryError{Message: "cannot bound webhook payload"}
 }
+
+// Render the same redacted, size-limited logs as a JSON block for Liquid.
+func renderJSONLogs(logs []monitor.Log) (string, error) {
+	type entry struct {
+		Pod       string   `json:"pod"`
+		Container string   `json:"container"`
+		Source    string   `json:"source"`
+		Lines     []string `json:"lines"`
+		Truncated bool     `json:"truncated"`
+		Error     string   `json:"error,omitempty"`
+	}
+	entries := make([]entry, 0, len(logs))
+	for _, log := range logs {
+		lines := []string{}
+		if log.Text != "" {
+			lines = strings.Split(strings.TrimSuffix(log.Text, "\n"), "\n")
+		}
+		entries = append(entries, entry{
+			Pod: log.Pod, Container: log.Container, Source: log.Source,
+			Lines: lines, Truncated: log.Truncated, Error: log.Error,
+		})
+	}
+	b, err := json.MarshalIndent(entries, "", "  ")
+	return string(b), err
+}
+
 func (s *Sender) secret(file string) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

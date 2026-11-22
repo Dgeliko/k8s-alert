@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -25,12 +26,30 @@ func TestPachcaPayloadHasSeparateLogs(t *testing.T) {
 	defer srv.Close()
 	f := filepath.Join(t.TempDir(), "url")
 	os.WriteFile(f, []byte(srv.URL), 0600)
-	err := srv.Sender.Send(context.Background(), config.Destination{Name: "p", Type: "pachca", URLFile: f}, monitor.Payload{Message: "failure", Logs: []monitor.Log{{Text: "error detail"}}})
+	lines := []string{`error at "startup"`, `path C:\app`}
+	err := srv.Sender.Send(context.Background(), config.Destination{Name: "p", Type: "pachca", URLFile: f}, monitor.Payload{
+		Message: "failure",
+		Logs:    []monitor.Log{{Pod: "api-1", Container: "app", Text: strings.Join(lines, "\n") + "\n"}},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if body["logs"] == nil || body["message"] == nil {
 		t.Fatal(body)
+	}
+	rendered, ok := body["logs_json"].(string)
+	if !ok {
+		t.Fatal("missing JSON for the message template")
+	}
+	var logs []struct {
+		Pod   string
+		Lines []string
+	}
+	if err := json.Unmarshal([]byte(rendered), &logs); err != nil {
+		t.Fatal(err)
+	}
+	if len(logs) != 1 || logs[0].Pod != "api-1" || !slices.Equal(logs[0].Lines, lines) {
+		t.Fatalf("unexpected JSON logs: %s", rendered)
 	}
 }
 func TestCredentialNotLeaked(t *testing.T) {
